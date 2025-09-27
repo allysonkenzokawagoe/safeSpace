@@ -1,0 +1,1 @@
+alter table USUARIO add column situacao varchar(60)
