@@ -1,0 +1,186 @@
+/* chat-estudante.css */
+
+/* VARIÁVEIS DE COR E ESTILO (UNIFICADAS) */
+:root {
+    --primary-hsl: 222, 47%, 11%;
+    --primary-foreground-hsl: 210, 40%, 98%;
+    --muted-hsl: 210, 40%, 96%;
+    --muted-foreground-hsl: 215, 16%, 47%;
+    --border-hsl: 214, 32%, 91%;
+    --success-hsl: 142, 76%, 36%;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --transition-colors: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    background-color: hsl(var(--muted-hsl));
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: hsl(var(--primary-hsl));
+}
+
+/* CONTAINERS E LAYOUTS (Padronização de Bordas e Sombra) */
+.chat-container, .history-panel {
+    height: 650px;
+    background: white;
+    border: 1px solid hsl(var(--border-hsl));
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+/* -------------------- PAINEL LATERAL: HISTÓRICO -------------------- */
+
+.history-list-body {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+/* Reutilizando a classe .list-item no HTML para o item de histórico */
+.history-item {
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border-hsl));
+    cursor: pointer;
+    transition: var(--transition-colors);
+}
+.history-item:hover {
+    background-color: hsl(var(--muted-hsl) / 0.5);
+}
+.history-item.active {
+    background-color: hsl(var(--primary-hsl) / 0.08);
+    border-left: 4px solid hsl(var(--primary-hsl));
+    padding-left: calc(1rem - 4px);
+}
+
+/* Badges de Status do Estudante */
+.chat-status-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+}
+.status-aberto {
+    background-color: hsl(var(--success-hsl) / 0.15);
+    color: hsl(var(--success-hsl));
+}
+.status-fechado {
+    background-color: hsl(var(--muted-foreground-hsl) / 0.15);
+    color: hsl(var(--muted-foreground-hsl));
+}
+
+/* -------------------- CHAT GERAL -------------------- */
+
+.chat-header {
+    background: white;
+    border-bottom: 1px solid hsl(var(--border-hsl));
+    padding: 1rem 1.5rem;
+    flex-shrink: 0;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.chat-input {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid hsl(var(--border-hsl));
+    flex-shrink: 0;
+}
+
+/* -------------------- MENSAGENS E BOLHAS (Visão Estudante) -------------------- */
+
+.message {
+    margin-bottom: 1rem;
+    display: flex;
+}
+.message-content {
+    max-width: 75%;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md);
+    line-height: 1.5;
+}
+.message-time {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+    text-align: right;
+    display: block;
+}
+
+/* Profissional (Incoming - Esquerda) */
+.message.professional, .message.incoming {
+    justify-content: flex-start;
+}
+.message.professional .message-content, .message.incoming .message-content {
+    background: hsl(var(--muted-hsl));
+    color: hsl(var(--primary-hsl));
+    border-top-left-radius: 0;
+}
+.message.professional .message-time, .message.incoming .message-time {
+    color: hsl(var(--muted-foreground-hsl));
+}
+
+/* Estudante (Outgoing - Direita) */
+.message.user, .message.outgoing {
+    justify-content: flex-end;
+}
+.message.user .message-content, .message.outgoing .message-content {
+    background: hsl(var(--primary-hsl));
+    color: hsl(var(--primary-foreground-hsl));
+    border-top-right-radius: 0;
+}
+.message.user .message-time, .message.outgoing .message-time {
+    color: hsl(var(--primary-foreground-hsl) / 0.8);
+}
+.message.user .avatar-small, .message.outgoing .avatar-small {
+    display: none; /* Garante o anonimato */
+}
+
+/* -------------------- AVATAR E ONLINE STATUS -------------------- */
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: hsl(var(--primary-hsl) / 0.15);
+    color: hsl(var(--primary-hsl));
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    display: flex; /* Adicionado para centralizar */
+    align-items: center;
+    justify-content: center;
+}
+.online-dot {
+    width: 8px;
+    height: 8px;
+    background-color: hsl(var(--success-hsl));
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* -------------------- UTILS -------------------- */
+
+.btn-primary {
+    background-color: hsl(var(--primary-hsl));
+    border-color: hsl(var(--primary-hsl));
+}
+.btn-primary:hover {
+    background-color: hsl(var(--primary-hsl) / 0.9);
+    border-color: hsl(var(--primary-hsl) / 0.9);
+}
+/* Estilo unificado para o header do painel lateral (remove o bg-primary manual no HTML) */
+.card-header {
+    background: hsl(var(--primary-hsl));
+    color: hsl(var(--primary-foreground-hsl));
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid hsl(var(--border-hsl)); /* Adicionado para consistência */
+}
