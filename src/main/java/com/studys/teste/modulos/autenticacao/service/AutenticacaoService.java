@@ -26,7 +26,7 @@ public class AutenticacaoService {
 
     public static int getUsuarioId() {
         var user = SecurityContextHolder.getContext().getAuthentication();
-        return Integer.parseInt(user.getName().split(Pattern.quote("-"))[0]);
+        return Integer.parseInt(user.getName().split(Pattern.quote(Pattern.quote("-")))[0]);
     }
 
     public static boolean hasAuthentication() {

@@ -4,6 +4,8 @@ CREATE TABLE usuario
     name          VARCHAR(255),
     email         VARCHAR(255),
     senha         VARCHAR(255),
+    role          VARCHAR(255),
     data_cadastro TIMESTAMP,
+    situacao      VARCHAR(255),
     CONSTRAINT pk_usuario PRIMARY KEY (id)
 );

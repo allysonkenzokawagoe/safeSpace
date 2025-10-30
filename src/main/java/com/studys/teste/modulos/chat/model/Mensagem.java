@@ -3,7 +3,13 @@ package com.studys.teste.modulos.chat.model;
 import com.studys.teste.modulos.anonimo.model.Anonimo;
 import com.studys.teste.modulos.psicologo.model.Psicologo;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "MENSAGEM")
 public class Mensagem {

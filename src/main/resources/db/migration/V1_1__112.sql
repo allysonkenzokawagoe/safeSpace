@@ -1,1 +1,0 @@
-alter table USUARIO add column ROLE VARCHAR(60)
