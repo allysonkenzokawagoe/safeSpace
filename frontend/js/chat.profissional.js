@@ -1,60 +1,15 @@
-// js/chat.profissional.js
-
-import { connectToChat, sendChatMessage, userData } from './chat.api.js';
+import { connectToChat, sendChatMessage, fetchAllMessages, userData } from './chat.api.js';
 
 // --- Estado do Profissional ---
-let activeStudentEmail = null; 
+let activeStudentEmail = null; // Guarda o email do estudante que está sendo atendido
 const priorityClasses = { 'alta': 'priority-alta', 'media': 'priority-media', 'baixa': 'priority-baixa' };
-
-// Dados de conversas simuladas para demonstração da troca de tela
-const simulatedChatHistory = {
-    'student1@anonimo.com': { // Urgente: Bullying
-        name: 'Estudante 1',
-        avatar: 'E1',
-        content: `
-            <div class="text-center text-muted mb-4 small">Início da Conversa - 27 de Setembro de 2025</div>
-            <div class="message student">
-                <div class="message-content"><p class="mb-0">Oi, preciso de ajuda... está acontecendo umas coisas na escola.</p><div class="message-time">14:30</div></div>
-            </div>
-            <div class="message professional">
-                <div class="message-content"><p class="mb-0">Olá! Obrigada por entrar em contato. Estou aqui para te ouvir. Pode me contar o que está acontecendo?</p><div class="message-time">14:31</div></div>
-            </div>
-            <div class="message student">
-                <div class="message-content"><p class="mb-0">Estou sofrendo bullying verbal na saída, e estou com medo de ir para casa.</p><div class="message-time">14:35</div></div>
-            </div>
-        `
-    },
-    'student2@anonimo.com': { // Média: Ansiedade
-        name: 'Estudante 2',
-        avatar: 'E2',
-        content: `
-            <div class="text-center text-muted mb-4 small">Sessão: Ansiedade e Provas</div>
-            <div class="message student">
-                <div class="message-content"><p class="mb-0">Estou muito nervoso(a) com a prova final de matemática...</p><div class="message-time">10:00</div></div>
-            </div>
-            <div class="message professional">
-                <div class="message-content"><p class="mb-0">Entendo. É normal sentir ansiedade. Vamos falar sobre algumas técnicas de respiração e relaxamento?</p><div class="message-time">10:02</div></div>
-            </div>
-        `
-    },
-    'student3@anonimo.com': { // Baixa: Dúvidas Carreira
-        name: 'Estudante 3',
-        avatar: 'E3',
-        content: `
-            <div class="text-center text-muted mb-4 small">Sessão: Dúvidas sobre Carreira</div>
-            <div class="message student">
-                <div class="message-content"><p class="mb-0">Não sei o que escolher para o futuro, estou perdido(a)...</p><div class="message-time">11:15</div></div>
-            </div>
-            <div class="message professional">
-                <div class="message-content"><p class="mb-0">Ótimo! Temos algumas ferramentas de orientação vocacional que podem te ajudar a mapear seus interesses. Quer dar uma olhada?</p><div class="message-time">11:18</div></div>
-            </div>
-        `
-    }
-};
-
 
 // --- Funções da Interface de Usuário (Profissional) ---
 
+/**
+ * Adiciona uma mensagem ao DOM.
+ * Esta função é chamada tanto para o histórico quanto para novas mensagens.
+ */
 function displayMessageInUI(mensagem) {
     const chatMessages = document.getElementById('chatMessages');
     
@@ -67,11 +22,12 @@ function displayMessageInUI(mensagem) {
     }
 
     const messageDiv = document.createElement('div');
-    // Usando as classes definidas no seu CSS
     const messageClass = isProfessional ? 'message professional' : 'message student'; 
     messageDiv.className = messageClass;
     
-    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const time = mensagem.dataEnvio 
+        ? new Date(mensagem.dataEnvio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     
     messageDiv.innerHTML = `
         <div class="message-content">
@@ -85,6 +41,72 @@ function displayMessageInUI(mensagem) {
 }
 
 
+/**
+ * [NOVA FUNÇÃO] Carrega a fila de estudantes na barra lateral.
+ * Ela usa a API 'fetchAllMessages' e filtra para achar os alunos.
+ */
+async function loadStudentQueue() {
+    const listBody = document.getElementById('studentListBody');
+    listBody.innerHTML = '<div class="text-center p-3 text-muted" id="queueLoadingState">Carregando fila...</div>';
+    
+    const allMessages = await fetchAllMessages();
+    
+    const studentEmails = [...new Set(
+        allMessages
+            .filter(msg => msg.remetente !== userData.email) // Pega msgs *recebidas*
+            .map(msg => msg.remetente) // Pega o email do remetente
+    )];
+
+    listBody.innerHTML = ''; // Limpa o "Carregando..."
+
+    if (studentEmails.length === 0) {
+        listBody.innerHTML = '<div class="text-center p-3 text-muted">Nenhum estudante na fila.</div>';
+        document.getElementById('queueTitle').textContent = `Fila de Espera (0)`;
+        return;
+    }
+
+    document.getElementById('queueTitle').textContent = `Fila de Espera (${studentEmails.length})`;
+
+    for (const email of studentEmails) {
+        const studentName = email.split('@')[0] || "Estudante";
+        const avatar = studentName.charAt(0).toUpperCase();
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'student-item';
+        itemDiv.setAttribute('data-student-id', email);
+        itemDiv.setAttribute('data-student-name', studentName);
+        
+        itemDiv.onclick = () => window.selectStudent(itemDiv);
+
+        itemDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-small me-3">${avatar}</div>
+                    <span class="fw-semibold">${studentName}</span>
+                </div>
+                <span class="priority-badge priority-baixa" data-priority="baixa">Normal</span>
+            </div>
+            <small class="text-muted d-block mt-1">Clique para ver mensagens</small>
+        `;
+        listBody.appendChild(itemDiv);
+    }
+}
+
+
+/**
+ * [NOVA FUNÇÃO] Callback do WebSocket.
+ * Chamada toda vez que uma *nova* mensagem chega.
+ */
+function handleNewMessage(mensagem) {
+    if (mensagem.remetente === activeStudentEmail) {
+        displayMessageInUI(mensagem);
+    } else {
+        console.log(`Nova mensagem recebida de ${mensagem.remetente}. Recarregando a fila.`);
+        loadStudentQueue();
+    }
+}
+
+
 // ----------------------------------------
 // FUNÇÕES GLOBAIS (Acessíveis pelo HTML)
 // ----------------------------------------
@@ -94,12 +116,17 @@ window.sendMessage = function() {
     const message = input.value.trim();
     
     if (message && activeStudentEmail) {
-        // Simulação de envio da minha própria mensagem
-        displayMessageInUI({ remetente: userData.email, text: message }); 
-        
-        // Envia para o servidor/estudante (API real)
         sendChatMessage(message, activeStudentEmail); 
         input.value = '';
+
+        displayMessageInUI({
+            remetente: userData.email, 
+            text: message,
+            dataEnvio: new Date().toISOString()
+        });
+
+    } else if (!activeStudentEmail) {
+        alert("Por favor, selecione um estudante da fila primeiro.");
     }
 }
 
@@ -110,66 +137,56 @@ window.handleKeyPress = function(event) {
 }
 
 /**
+ * [FUNÇÃO REESCRITA]
  * Lida com a seleção de um estudante na fila lateral.
- * @param {HTMLElement} selectedItem - O elemento div.student-item clicado.
  */
-window.selectStudent = function(selectedItem) {
-    // 1. Lógica de UI (remover/adicionar active)
+window.selectStudent = async function(selectedItem) {
     document.querySelectorAll('.student-item').forEach(item => item.classList.remove('active'));
     selectedItem.classList.add('active');
     
-    // 2. ATUALIZA O ESTADO GLOBAL
     activeStudentEmail = selectedItem.getAttribute('data-student-id'); 
     
-    // 3. Obtém dados do estudante e do chat simulado
-    const studentData = simulatedChatHistory[activeStudentEmail];
+    const studentName = selectedItem.getAttribute('data-student-name');
+    document.getElementById('studentAvatar').textContent = studentName.charAt(0).toUpperCase();
+    document.getElementById('studentName').textContent = studentName;
     
-    // 4. Atualiza o Header e Avatar
-    const nameElement = selectedItem.querySelector('.fw-bold, .fw-semibold');
-    const name = nameElement ? nameElement.textContent.trim() : 'Nome Desconhecido';
-
-    document.getElementById('studentAvatar').textContent = studentData.avatar;
-    document.getElementById('studentName').textContent = studentData.name;
-    
-    // 5. Atualiza o Badge de Prioridade
-    const priorityBadge = selectedItem.querySelector('.priority-badge');
-    const priorityText = priorityBadge.textContent;
-    const priorityData = priorityBadge.getAttribute('data-priority');
-
-    const studentPriority = document.getElementById('studentPriority');
-    studentPriority.textContent = priorityText;
-    studentPriority.className = `priority-badge ${priorityClasses[priorityData]}`; 
-    
-    // 6. CARREGA O HISTÓRICO DE MENSAGENS SIMULADO (O QUE ESTAVA FALTANDO)
-    const chatMessages = document.getElementById('chatMessages');
-    chatMessages.innerHTML = studentData.content;
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para o final
-    
-    // 7. Garante que o painel de chat esteja visível e o estado vazio escondido
-    const emptyState = document.getElementById('emptyChatState');
-    if (emptyState) emptyState.style.display = 'none';
+    document.getElementById('emptyChatState').style.display = 'none';
     document.getElementById('chatInterface').style.display = 'flex';
+    document.getElementById('messageInput').disabled = false; 
+
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.innerHTML = '<div class="text-center p-3 text-muted">Carregando histórico...</div>';
+
+    const allMessages = await fetchAllMessages(); 
+
+    const conversationHistory = allMessages.filter(msg => 
+        (msg.remetente === activeStudentEmail && msg.destinatario === userData.email) ||
+        (msg.remetente === userData.email && msg.destinatario === activeStudentEmail)
+    );
+    
+    chatMessages.innerHTML = ''; 
+    
+    for (const msg of conversationHistory) {
+        displayMessageInUI(msg); 
+    }
 }
 
 // --- Inicialização ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Simulação de dados do usuário logado (Profissional)
-    userData.email = "profissional@apoio.com";
-    userData.isPsicologo = true;
-    
-    if (userData.isPsicologo) {
-        // Conecta imediatamente para começar a ouvir a fila de novos chats
-        // connectToChat(displayMessageInUI); // Comentado para não precisar da API
+    // 1. Verifica se o usuário está logado (segurança)
+    if (!userData || !userData.email || !userData.isPsicologo) {
+        alert("Acesso negado. Faça o login como profissional primeiro.");
+        window.location.href = 'pagina-inicial.html';
+        return;
     }
+
+    // 2. Mostra o estado vazio por padrão
+    document.getElementById('emptyChatState').style.display = 'flex';
+    document.getElementById('chatInterface').style.display = 'none';
     
-    // Selecionar o primeiro estudante ativo na inicialização
-    const initialStudent = document.querySelector('.student-item.active');
+    // 3. Conecta ao WebSocket
+    connectToChat(handleNewMessage); 
     
-    if (initialStudent) {
-        window.selectStudent(initialStudent);
-    } else {
-        // Se nenhum estudante estiver ativo inicialmente, mostre a tela vazia
-        document.getElementById('emptyChatState').style.display = 'block';
-        document.getElementById('chatInterface').style.display = 'none';
-    }
+    // 4. Carrega a fila de estudantes pela primeira vez
+    loadStudentQueue();
 });
