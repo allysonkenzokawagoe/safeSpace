@@ -1,41 +1,108 @@
+
+import { authenticate, registerAnonimo } from './chat.api.js';
+
+
 /**
  * Função de redirecionamento de login.
- * Simula a validação e redireciona o usuário para o ambiente correto.
+ * AGORA CONECTADA COM A API.
  * @param {string} role - 'student' ou 'professional'
  */
-function handleLogin(role) {
-    // --- Lógica de Validação Front-end (Simulação) ---
+window.handleLogin = async function (role) {
     const formId = role === 'student' ? 'studentForm' : 'professionalForm';
     const form = document.getElementById(formId);
 
-    // Usa a validação nativa do navegador para os campos 'required'
+    // Usa a validação nativa do navegador
     if (!form.checkValidity()) {
         form.reportValidity();
-        return; // Impede o redirecionamento se o formulário não for válido
+        return;
     }
 
-    // Se o login for bem-sucedido (neste caso, o formulário é válido), redirecione:
-    
-    if (role === 'student') {
-        // Fecha o modal antes de redirecionar para uma melhor experiência
+    // Pega os dados reais do formulário
+    const email = document.getElementById(role === 'student' ? 'studentEmail' : 'profEmail').value;
+    const password = document.getElementById(role === 'student' ? 'studentPassword' : 'profPassword').value;
+
+    // Chama a API REAL (do chat.api.js)
+    const userData = await authenticate(email, password);
+
+    if (userData) {
         const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
         loginModal.hide();
-        window.location.href = 'chat-estudante.html';
-    } else if (role === 'professional') {
-        // Fecha o modal antes de redirecionar
-        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-        loginModal.hide();
-        window.location.href = 'chat-profissional.html';
+        
+        if (role === 'student') {
+            window.location.href = 'chat-estudante.html';
+        } else if (role === 'professional') {
+            window.location.href = 'chat-profissional.html';
+        }
     } else {
-        console.error('Função de login chamada com role desconhecido.');
+        // A função 'authenticate' no chat.api.js já mostra um alert() de erro
+        console.error("Falha no login");
     }
 }
 
 /**
- * Função para abrir o Modal de Login
- * Chamada por botões com onclick="openLoginModal()"
+ * FUNÇÃO: Lida com o clique no botão "Criar minha conta".
  */
-function openLoginModal() {
+window.handleRegister = async function () {
+    const form = document.getElementById('registerForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const email = document.getElementById('registerEmail').value;
+    const pass = document.getElementById('registerPassword').value;
+    const confirmPass = document.getElementById('registerConfirmPassword').value;
+
+    if (pass !== confirmPass) {
+        alert('As senhas não conferem!');
+        return;
+    }
+
+    // Chama a API REAL de cadastro (do chat.api.js)
+    const success = await registerAnonimo(email, pass);
+
+    if (success) {
+        alert("Conta criada com sucesso! \n\nAgora você pode fazer o login.");
+        
+        // Manda o usuário de volta para a tela de login
+        toggleRegisterView(new Event('click')); // Simula um clique no link
+    } else {
+        // A função 'registerAnonimo' no chat.api.js já mostra um alert()
+        console.error("Falha no cadastro");
+    }
+}
+
+
+/**
+ * ===================================================================
+ * FUNÇÃO DE TOGGLE CORRIGIDA (sem as classes de animação)
+ * ===================================================================
+ * Alterna entre a "visão" de Login e a "visão" de Cadastro
+ * dentro da mesma aba de Estudante.
+ */
+window.toggleRegisterView = function (event) {
+    if(event) event.preventDefault(); // Impede o link '#' de pular a página
+
+    const loginView = document.getElementById('student-login-view');
+    const registerView = document.getElementById('student-register-view');
+
+    // Lógica para alternar (agora sem animação)
+    if (loginView.style.display === 'none') {
+        // Mostra Login, Esconde Cadastro
+        registerView.style.display = 'none';
+        loginView.style.display = 'block';
+    } else {
+        // Esconde Login, Mostra Cadastro
+        loginView.style.display = 'none';
+        registerView.style.display = 'block';
+    }
+}
+
+
+/**
+ * Função para abrir o Modal de Login
+ */
+window.openLoginModal = function () {
     const loginModalElement = document.getElementById('loginModal');
     if (loginModalElement) {
         const loginModal = new bootstrap.Modal(loginModalElement);
@@ -61,21 +128,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const videoModalLabel = document.getElementById('videoModalLabel');
 
     if (videoModal) {
-        // Evento que dispara quando o modal está prestes a ser mostrado
         videoModal.addEventListener('show.bs.modal', function (event) {
-            // Pega o card (elemento pai) que disparou o evento de clique
             const relatedCard = event.relatedTarget;
-            
-            // Pega o ID do vídeo do atributo de dados
             const youtubeId = relatedCard.getAttribute('data-youtube-url');
             const videoTitle = relatedCard.querySelector('.video-title').textContent;
             
-            // Atualiza o título do modal
             if (videoModalLabel) {
                  videoModalLabel.textContent = videoTitle;
             }
 
-            // Cria o iframe do YouTube (autoplay=1 e rel=0 para melhor experiência)
             const iframe = document.createElement('iframe');
             iframe.setAttribute('src', `https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&showinfo=0`);
             iframe.setAttribute('allow', 'autoplay; encrypted-media');
@@ -84,17 +145,12 @@ document.addEventListener('DOMContentLoaded', function () {
             iframe.style.width = '100%';
             iframe.style.height = '100%';
             
-            // Insere o iframe no container
             playerContainer.innerHTML = ''; 
             playerContainer.appendChild(iframe);
         });
 
-        // Evento que dispara quando o modal está prestes a ser escondido
         videoModal.addEventListener('hide.bs.modal', function () {
-            // Para o vídeo limpando o conteúdo do container
             playerContainer.innerHTML = '';
-            
-            // Reseta o título
             if (videoModalLabel) {
                  videoModalLabel.textContent = 'Vídeo Informativo';
             }
@@ -111,11 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     behavior: 'smooth',
                     block: 'start'
                 });
-                // Fechar menu mobile se estiver aberto
                 const navbarCollapse = document.querySelector('.navbar-collapse');
                 if (navbarCollapse && navbarCollapse.classList.contains('show')) {
                     if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                        bootstrap.Collapse.getInstance(navbarCollapse).hide();
+                         bootstrap.Collapse.getInstance(navbarCollapse).hide();
                     }
                 }
             }

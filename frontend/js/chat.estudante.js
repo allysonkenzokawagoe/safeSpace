@@ -1,24 +1,31 @@
 // js/chat.estudante.js
 
-import { connectToChat, sendChatMessage, userData } from './chat.api.js';
+// Importa as funções da API e os dados do usuário (que o login salvou no localStorage)
+import { connectToChat, sendChatMessage, fetchAllMessages, userData } from './chat.api.js';
+
+// TODO: Defina com seu amigo do backend UMA conta de profissional para o MVP
+// Esta é a conta "central" para onde todos os estudantes vão enviar mensagens.
+const PROFESSIONAL_EMAIL = "profissional@apoio.com"; 
 
 // --- Funções da Interface de Usuário (Estudante) ---
 
 /**
  * Adiciona uma mensagem ao DOM (Função de Callback para o WebSocket).
- * @param {Object} mensagem - O objeto Mensagem recebido do Spring Boot.
+ * @param {Object} mensagem - O objeto Mensagem recebido (pode ser do histórico ou WebSocket).
  */
 function displayMessageInUI(mensagem) {
     const chatMessages = document.getElementById('chatMessages');
     
-    // Determina se a mensagem veio do usuário logado ou do profissional
+    // Checa se o remetente da mensagem é o usuário logado
     const isUser = mensagem.remetente === userData.email; 
     
     const messageDiv = document.createElement('div');
     messageDiv.className = isUser ? 'message user' : 'message professional';
     
-    // Usando a hora local atual como placeholder para a hora da mensagem
-    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    // Tenta formatar a data (se existir) ou usa a hora atual
+    const time = mensagem.dataEnvio 
+        ? new Date(mensagem.dataEnvio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     
     messageDiv.innerHTML = `
         <div class="message-content">
@@ -28,7 +35,7 @@ function displayMessageInUI(mensagem) {
     `;
     
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
 }
 
 
@@ -38,12 +45,17 @@ function displayMessageInUI(mensagem) {
  * ----------------------------------------
  */
 
+/**
+ * Envia uma nova mensagem.
+ * A mudança principal é no 'destinatario'.
+ */
 window.sendMessage = function() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
     
-    // Placeholder para o email/ID do destinatário (o Profissional Ativo)
-    const destinatario = 'psicologo_ativo@studys.com'; 
+    // MUDANÇA IMPORTANTE:
+    // Agora o destinatário é a conta fixa do profissional (definida no topo)
+    const destinatario = PROFESSIONAL_EMAIL; 
     
     if (message && !input.disabled) {
         // Usa a função importada para enviar via WebSocket
@@ -52,6 +64,10 @@ window.sendMessage = function() {
     }
 }
 
+/**
+ * Permite enviar com "Enter".
+ * Sem mudanças.
+ */
 window.handleKeyPress = function(event) {
     if (event.key === 'Enter') {
         window.sendMessage();
@@ -59,67 +75,62 @@ window.handleKeyPress = function(event) {
 }
 
 /**
- * Lida com o clique na sessão lateral (Histórico).
- * Esta é a função CORRIGIDA para recarregar o conteúdo da UI.
- * @param {HTMLElement} item - O elemento div.history-item clicado.
+ * NOVA FUNÇÃO: Carrega o histórico inicial da conversa.
  */
-window.loadChat = function(item) {
-    const sessionId = item.getAttribute('data-session-id');
+async function loadInitialHistory() {
+    if (!userData || !userData.email) {
+        console.error("Não foi possível carregar o histórico. Dados do usuário não encontrados.");
+        return;
+    }
+
+    const myEmail = userData.email;
+    const professionalEmail = PROFESSIONAL_EMAIL; // A conta fixa
+
+    // 1. Busca *todas* as mensagens (como a API atual do seu amigo faz)
+    // Em uma versão futura, o ideal é a API já trazer isso filtrado.
+    const allMessages = await fetchAllMessages();
+
+    // 2. Filtra no frontend apenas as mensagens desta conversa
+    const conversationHistory = allMessages.filter(msg => 
+        (msg.remetente === myEmail && msg.destinatario === professionalEmail) ||
+        (msg.remetente === professionalEmail && msg.destinatario === myEmail)
+    );
+
+    // 3. (Opcional) Ordena as mensagens por data/id
+    // A API do seu amigo (buscarTodos) provavelmente já retorna em ordem.
+    // Se não, você pode adicionar: conversationHistory.sort((a, b) => a.id - b.id);
+
+    // 4. Limpa qualquer mensagem de "loading" (se houver) e exibe o histórico
     const chatMessages = document.getElementById('chatMessages');
-    const messageInput = document.getElementById('messageInput');
+    // Limpa tudo, exceto o "Lembre-se"
+    chatMessages.innerHTML = `<div class="text-center text-muted mb-4 small">Lembre-se: **Suas conversas são 100% confidenciais e seguras.**</div>`;
 
-    // 1. Lógica de UI (adicionar/remover 'active')
-    document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
-    item.classList.add('active');
-
-    // 2. CONEXÃO/ESTADO DO INPUT
-    if (sessionId === 'session-active' && userData.email) {
-        // Se for a sessão ativa, inicia ou garante a conexão WebSocket
-        connectToChat(displayMessageInUI); 
-        messageInput.disabled = false;
-        messageInput.placeholder = "Compartilhe seus pensamentos. Suas mensagens são anônimas.";
-    } else {
-        // Se for uma sessão passada/fechada, desativa o input
-        messageInput.disabled = true;
-        messageInput.placeholder = "Esta sessão está fechada. Não é possível enviar mensagens.";
+    for (const msg of conversationHistory) {
+        displayMessageInUI(msg); // Exibe cada mensagem do histórico
     }
-
-    // 3. LÓGICA DE CARREGAMENTO DO HISTÓRICO (Simulação)
-    let newContent = `<div class="text-center text-muted mb-4 small">Lembre-se: **Suas conversas são 100% confidenciais e seguras.**</div>`;
-    
-    if (sessionId === 'session-active') {
-        // Conteúdo da Sessão ATIVA
-        newContent += `<div class="text-center text-muted my-3 small text-uppercase fw-semibold"><i class="bi bi-calendar-check me-1"></i> Sessão Anterior: Ontem, 16:00</div>
-                       <div class="message professional"><div class="message-content"><p class="mb-0">Agradeço por compartilhar. Como se sentiu após nossa última conversa?</p><div class="message-time">Ontem, 16:05</div></div></div>
-                       <div class="message user"><div class="message-content"><p class="mb-0">Fiquei um pouco melhor, obrigado(a).</p><div class="message-time">Ontem, 16:08</div></div></div>
-                       <div class="text-center text-muted my-3 small text-uppercase fw-semibold"><i class="bi bi-calendar-check me-1"></i> Hoje</div>
-                       <div class="message professional"><div class="message-content"><p class="mb-0">Olá! Sou a psicóloga Maria. Como posso te ajudar hoje?</p><div class="message-time">14:30</div></div></div>`;
-
-    } else if (sessionId === 'session-bullying') {
-        // Conteúdo da Sessão FECHADA: Bullying
-        newContent += `<div class="text-center text-muted my-3 small text-uppercase fw-semibold"><i class="bi bi-archive me-1"></i> Sessão Encerrada: 20/SET</div>
-                       <div class="message user"><div class="message-content"><p class="mb-0">Preciso de ajuda com bullying, não aguento mais.</p><div class="message-time">20/SET 10:00</div></div></div>
-                       <div class="message professional"><div class="message-content"><p class="mb-0">Entendo. É muito sério. Vamos analisar suas opções e o protocolo escolar.</p><div class="message-time">20/SET 10:05</div></div></div>`;
-
-    } else if (sessionId === 'session-ansiedade') {
-        // Conteúdo da Sessão FECHADA: Ansiedade
-        newContent += `<div class="text-center text-muted my-3 small text-uppercase fw-semibold"><i class="bi bi-archive me-1"></i> Sessão Encerrada: 15/AGO</div>
-                       <div class="message user"><div class="message-content"><p class="mb-0">Estou muito ansioso(a) com as provas.</p><div class="message-time">15/AGO 14:00</div></div></div>
-                       <div class="message professional"><div class="message-content"><p class="mb-0">Normal sentir isso! Vamos praticar a técnica de respiração que te ensinei?</p><div class="message-time">15/AGO 14:02</div></div></div>`;
-    }
-
-    // Aplica o novo conteúdo de histórico e rola para baixo
-    chatMessages.innerHTML = newContent;
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 
 // --- Inicialização ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Tenta carregar a sessão ativa por padrão ao abrir a página
-    const initialItem = document.querySelector('.history-item.active');
-    if (initialItem) {
-        // Chama loadChat no item inicial para configurar o estado da UI e a conexão WS
-        window.loadChat(initialItem); 
+    // 1. Verifica se o usuário está logado (se 'userData' existe no localStorage)
+    if (!userData || !userData.email) {
+        // Se não estiver logado, desativa o input e redireciona
+        const input = document.getElementById('messageInput');
+        input.placeholder = "Você precisa fazer login para conversar.";
+        input.disabled = true;
+        
+        // Redireciona para a página inicial após 2 segundos
+        setTimeout(() => {
+            window.location.href = 'pagina-inicial.html';
+        }, 2000);
+        return;
     }
+
+    // 2. Se estiver logado, inicia a conexão do WebSocket
+    // O 'displayMessageInUI' será chamado CADA VEZ que uma nova msg chegar
+    connectToChat(displayMessageInUI); 
+
+    // 3. Carrega o histórico de mensagens
+    loadInitialHistory();
 });
