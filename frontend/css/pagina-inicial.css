@@ -504,6 +504,25 @@ html {
 
 /* --- ESTILOS DO MODAL DE LOGIN --- */
 
+/* Use nav-fill para as abas ocuparem 50% cada */
+.modal-login-custom .nav-pills.nav-fill .nav-link {
+    width: 100%;
+    margin: 0;
+}
+.modal-login-custom .nav-pills.nav-fill .nav-item {
+    flex-grow: 1;
+}
+/* Adiciona um pequeno espaço entre os botões */
+.modal-login-custom .nav-pills .nav-item:first-child .nav-link {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.modal-login-custom .nav-pills .nav-item:last-child .nav-link {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+
 /* Estilização da aba ativa */
 .modal-login-custom .nav-pills .nav-link.active, 
 .modal-login-custom .nav-pills .show > .nav-link {
@@ -516,10 +535,10 @@ html {
 .modal-login-custom .nav-pills .nav-link {
     color: hsl(var(--muted-foreground));
     background-color: hsl(var(--accent));
-    border-radius: 8px;
+    border-radius: 8px; /* Raio de borda geral */
     padding: 0.5rem 1rem;
-    margin-right: 0.5rem;
     transition: all 0.2s ease;
+    height: 100%;
 }
 
 /* Título e Subtítulo do Formulário */
@@ -591,4 +610,20 @@ html {
     .modal-dialog {
         margin: 1rem;
     }
+}
+
+/* =================================================================== */
+/* [CSS REMOVIDO] O bloco de CSS para animação foi removido.
+/* O código abaixo é o que sobrou e é o CORRETO.
+/* =================================================================== */
+
+/* Estilo do link de "Criar conta" / "Fazer login" */
+.modal-login-custom .form-subtitle a,
+.modal-login-custom form a {
+    color: hsl(var(--primary));
+    font-weight: 500;
+    cursor: pointer;
+}
+.modal-login-custom form a:hover {
+    text-decoration: underline !important;
 }
