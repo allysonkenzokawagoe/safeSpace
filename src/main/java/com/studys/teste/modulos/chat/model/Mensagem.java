@@ -1,12 +1,13 @@
 package com.studys.teste.modulos.chat.model;
 
-import com.studys.teste.modulos.anonimo.model.Anonimo;
-import com.studys.teste.modulos.psicologo.model.Psicologo;
+import com.studys.teste.modulos.chat.dto.ChatMessage;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,16 +22,14 @@ public class Mensagem {
     @Column(name = "REMENTENTE")
     private String remetente;
 
-    @Column(name = "DESTINATARIO")
-    private String destinatario;
-
     @Column(name = "TEXT")
     private String text;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Anonimo anonimo;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Psicologo psicologo;
+    public static Mensagem of(ChatMessage mensagem) {
+        return Mensagem.builder()
+                .remetente(mensagem.from())
+                .text(mensagem.text())
+                .build();
+    }
 
 }

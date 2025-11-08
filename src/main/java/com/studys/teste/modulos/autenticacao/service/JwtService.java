@@ -39,6 +39,7 @@ public class JwtService {
         var usuarioAutenticado = autenticacaoService.getUsuarioAutenticado();
         var token = gerarJwt(usuarioAutenticado);
         usuarioAutenticado.setToken(token);
+        System.out.println(usuarioAutenticado);
         return usuarioAutenticado;
     }
 

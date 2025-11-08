@@ -38,12 +38,11 @@ function displayMessageInUI(mensagem) {
     chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
 }
 
+function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const conteudo = input.value.trim();
 
-/**
- * ----------------------------------------
- * FUNÇÕES GLOBAIS (Acessíveis pelo HTML)
- * ----------------------------------------
- */
+    if (conteudo === "") return;
 
 /**
  * Envia uma nova mensagem.
@@ -110,6 +109,9 @@ async function loadInitialHistory() {
     }
 }
 
+function handleKeyPress(event) {
+    if (event.key === "Enter") sendMessage();
+}
 
 // --- Inicialização ---
 document.addEventListener('DOMContentLoaded', () => {

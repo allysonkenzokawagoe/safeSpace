@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Chat em Tempo Real</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>Chat WebSocket</h2>
+
+<input type="text" id="from" placeholder="Seu nome" />
+<input type="text" id="text" placeholder="Digite sua mensagem..." />
+<button onclick="enviar()">Enviar</button>
+
+<ul id="chat"></ul>
+
+<script>
+    let stompClient = null;
+
+    function conectar() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Conectado: ' + frame);
+
+            stompClient.subscribe('/topic/public', function (mensagem) {
+                mostrarMensagem(JSON.parse(mensagem.body));
+            });
+        });
+    }
+
+    function enviar() {
+        const from = document.getElementById('from').value;
+        const text = document.getElementById('text').value;
+        stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({ from, text }));
+        document.getElementById('text').value = '';
+    }
+
+    function mostrarMensagem(mensagem) {
+        const chat = document.getElementById('chat');
+        const item = document.createElement('li');
+        item.innerText = `${mensagem.from}: ${mensagem.text} `;
+        chat.appendChild(item);
+    }
+
+    conectar();
+</script>
+</body>
+<style>
+
+</style>
+</html>

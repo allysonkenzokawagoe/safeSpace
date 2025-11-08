@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuario", "/api/usuario/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuario/*").hasRole(ADMIN.name())
                         .requestMatchers("/api/psicologo",  "/api/psicologo/**").permitAll()
+                        .requestMatchers("/ws/**", "/topic/**", "/app/**", "/api/mensagem", "/api/mensagem/**", "/index.html").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(FormLoginConfigurer::disable)
                 .sessionManagement(ss -> ss.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

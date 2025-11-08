@@ -17,14 +17,15 @@ window.handleLogin = async function (role) {
         return;
     }
 
-    // Pega os dados reais do formulário
-    const email = document.getElementById(role === 'student' ? 'studentEmail' : 'profEmail').value;
-    const password = document.getElementById(role === 'student' ? 'studentPassword' : 'profPassword').value;
-
-    // Chama a API REAL (do chat.api.js)
-    const userData = await authenticate(email, password);
-
-    if (userData) {
+    // Se o login for bem-sucedido (neste caso, o formulário é válido), redirecione:
+    
+    if (role === 'ANONIMO') {
+        // Fecha o modal antes de redirecionar para uma melhor experiência
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        loginModal.hide();
+        window.location.href = 'chat-estudante.html';
+    } else if (role === 'PSICOLOGO') {
+        // Fecha o modal antes de redirecionar
         const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
         loginModal.hide();
         

@@ -4,35 +4,22 @@ import com.studys.teste.modulos.chat.dto.ChatMessage;
 import com.studys.teste.modulos.chat.model.Mensagem;
 import com.studys.teste.modulos.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
 
-import java.util.List;
-
+@Controller
 @RequiredArgsConstructor
-@RestController
-@RequestMapping("/api/mensagem")
 public class ChatController {
 
-    private final ChatService chatService;
+    private final ChatService service;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    @GetMapping
-    public List<Mensagem> buscarTodos() {
-        return chatService.buscarTodos();
+    @MessageMapping("chat.sendMessage.{toUserId}")
+    public void enviarMensagem(@DestinationVariable String toUserId, ChatMessage mensagem) {
+        service.save(Mensagem.of(mensagem));
+        messagingTemplate.convertAndSendToUser(toUserId, "/queue/mensagem", mensagem);
     }
 
-    @GetMapping("{id}")
-    public Mensagem buscarPorId(@PathVariable Integer id) {
-        return chatService.buscarPorId(id);
-    }
-
-    @MessageMapping("/chat.sendMessage")
-    @SendTo("/topic/public")
-    public ChatMessage enviarMensagem(ChatMessage chatMessage) {
-        return chatMessage;
-    }
 }
