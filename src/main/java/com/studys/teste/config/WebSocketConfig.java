@@ -1,3 +1,6 @@
+
+
+
 package com.studys.teste.config;
 
 import org.springframework.context.annotation.Configuration;
@@ -11,20 +14,18 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        config.enableSimpleBroker("/topic", "/queue");
+        config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.setApplicationDestinationPrefixes("/app");
-
-        // Habilita o broker para o destino "/topic" para mensagens de broadcast
-        // e mantém o "/queue" para mensagens diretas.
-        registry.enableSimpleBroker("/topic", "/queue");
-
-        registry.setUserDestinationPrefix("/user");
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*") // 👈 aceita qualquer porta local
+                .withSockJS(); // <---- precisa estar aqui!
     }
 }
+
+
+

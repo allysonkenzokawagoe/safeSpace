@@ -17,6 +17,7 @@ public class ChatController {
     @MessageMapping("/mensagemGlobal")
     @SendTo("/topic/mensagens")
     public ChatMessage enviarMensagemGlobal(ChatMessage message) {
+
         chatService.save(Mensagem.of(message));
         return new ChatMessage(message.from(), message.text());
     }
