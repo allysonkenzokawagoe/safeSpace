@@ -1,47 +1,80 @@
-
 import { authenticate, registerAnonimo } from './chat.api.js';
 
+/**
+ * ARRAY COM LOGINS DE TESTE (pra n ter banco)
+ */
+const USUARIOS_TESTE = [
+    {
+        email: "estudante@teste.com",
+        senha: "123456",
+        tipo: "student",
+        nome: "Estudante Teste"
+    },
+    {
+        email: "profissional@teste.com", 
+        senha: "123456",
+        tipo: "professional",
+        nome: "Profissional Teste"
+    }
+];
 
 /**
- * Função de redirecionamento de login.
- * AGORA CONECTADA COM A API.
- * @param {string} role - 'student' ou 'professional'
+ * FUNÇÃO DE VALIDAÇÃO SIMPLES COM ARRAY
+ */
+function validarLoginLocal(email, senha, tipo) {
+    return USUARIOS_TESTE.find(usuario => 
+        usuario.email === email && 
+        usuario.senha === senha && 
+        usuario.tipo === tipo
+    );
+}
+
+/**
+ * FUNÇÃO PRINCIPAL DE LOGIN (agora com validação local)
  */
 window.handleLogin = async function (role) {
     const formId = role === 'student' ? 'studentForm' : 'professionalForm';
     const form = document.getElementById(formId);
 
-    // Usa a validação nativa do navegador
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
     }
 
-    // Se o login for bem-sucedido (neste caso, o formulário é válido), redirecione:
+    let email, senha;
     
-    if (role === 'ANONIMO') {
-        // Fecha o modal antes de redirecionar para uma melhor experiência
-        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-        loginModal.hide();
-        window.location.href = 'chat-estudante.html';
-    } else if (role === 'PSICOLOGO') {
-        // Fecha o modal antes de redirecionar
-        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-        loginModal.hide();
+    if (role === 'student') {
+        email = document.getElementById('studentEmail').value;
+        senha = document.getElementById('studentPassword').value;
+    } else {
+        email = document.getElementById('profEmail').value;
+        senha = document.getElementById('profPassword').value;
+    }
+
+    // Validação local com array
+    const usuarioValido = validarLoginLocal(email, senha, role);
+    
+    if (usuarioValido) {
+        console.log(`✅ Login bem-sucedido: ${usuarioValido.nome}`);
         
+        // Fecha o modal
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        if (loginModal) loginModal.hide();
+
+        // Redireciona para a página correta
         if (role === 'student') {
             window.location.href = 'chat-estudante.html';
-        } else if (role === 'professional') {
+        } else {
             window.location.href = 'chat-profissional.html';
         }
     } else {
-        // A função 'authenticate' no chat.api.js já mostra um alert() de erro
-        console.error("Falha no login");
+        alert('❌ Email ou senha incorretos!');
+        console.log('Credenciais testadas:', { email, senha, role });
     }
 }
 
 /**
- * FUNÇÃO: Lida com o clique no botão "Criar minha conta".
+ * FUNÇÃO DE CADASTRO (mantida da versão anterior)
  */
 window.handleRegister = async function () {
     const form = document.getElementById('registerForm');
@@ -59,49 +92,36 @@ window.handleRegister = async function () {
         return;
     }
 
-    // Chama a API REAL de cadastro (do chat.api.js)
-    const success = await registerAnonimo(email, pass);
+    const success = true; // Simula sucesso
 
     if (success) {
         alert("Conta criada com sucesso! \n\nAgora você pode fazer o login.");
-        
-        // Manda o usuário de volta para a tela de login
-        toggleRegisterView(new Event('click')); // Simula um clique no link
+        toggleRegisterView(new Event('click'));
     } else {
-        // A função 'registerAnonimo' no chat.api.js já mostra um alert()
-        console.error("Falha no cadastro");
+        alert("Erro ao criar conta. Tente novamente.");
     }
 }
 
-
 /**
- * ===================================================================
- * FUNÇÃO DE TOGGLE CORRIGIDA (sem as classes de animação)
- * ===================================================================
- * Alterna entre a "visão" de Login e a "visão" de Cadastro
- * dentro da mesma aba de Estudante.
+ * FUNÇÃO DE TOGGLE ENTRE LOGIN E CADASTRO
  */
 window.toggleRegisterView = function (event) {
-    if(event) event.preventDefault(); // Impede o link '#' de pular a página
+    if(event) event.preventDefault();
 
     const loginView = document.getElementById('student-login-view');
     const registerView = document.getElementById('student-register-view');
 
-    // Lógica para alternar (agora sem animação)
     if (loginView.style.display === 'none') {
-        // Mostra Login, Esconde Cadastro
         registerView.style.display = 'none';
         loginView.style.display = 'block';
     } else {
-        // Esconde Login, Mostra Cadastro
         loginView.style.display = 'none';
         registerView.style.display = 'block';
     }
 }
 
-
 /**
- * Função para abrir o Modal de Login
+ * FUNÇÃO PARA ABRIR MODAL DE LOGIN
  */
 window.openLoginModal = function () {
     const loginModalElement = document.getElementById('loginModal');
@@ -109,21 +129,18 @@ window.openLoginModal = function () {
         const loginModal = new bootstrap.Modal(loginModalElement);
         loginModal.show();
     } else {
-        console.error('O modal de login (#loginModal) não foi encontrado!');
+        console.error('Modal de login não encontrado!');
     }
 }
 
 /**
- * Funções que devem ser executadas após o carregamento completo do DOM
+ * INICIALIZAÇÃO DA PÁGINA
  */
 document.addEventListener('DOMContentLoaded', function () {
-    // --- 1. Inicialização do Tooltip do Bootstrap ---
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
-
-    // --- 2. Lógica para o Modal de Vídeo (YouTube Embed) ---
     const videoModal = document.getElementById('videoModal');
     const playerContainer = document.getElementById('youtube-player');
     const videoModalLabel = document.getElementById('videoModalLabel');
@@ -157,9 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
-    // --- 3. Smooth scroll para links de navegação ---
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
@@ -176,5 +191,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    });
+
+    // Log dos usuários de teste disponíveis
+    console.log('👥 Usuários de teste disponíveis:');
+    USUARIOS_TESTE.forEach(usuario => {
+        console.log(`   📧 ${usuario.email} | 🔑 ${usuario.senha} | 👤 ${usuario.tipo}`);
     });
 });
